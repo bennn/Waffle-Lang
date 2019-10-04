@@ -10,11 +10,6 @@
 
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
- 
-(define loglevel 1)
-(define mode 'new)
-(define ops '())
-(define root #f)
 
 (define (evaluate-step step)
    (match step
@@ -134,24 +129,16 @@
 
 ; command line 
 
-(command-line
- #:multi
- [("-v" "--verbose")    "more verbose"      (set! loglevel (add1 loglevel))]
- [("-q" "--quiet")      "be quiet"          (set! loglevel 0)]
- #:once-any
- [("-i" "--in-place")   "edit in-place"     (set! mode 'in-place)]
- [("-c" "--create-new") "create a new file" (set! mode 'new)]
- [("-n" "--dry-run")    "do nothing"        (set! mode #f)]
- #:once-each
- [("-d" "--directory") dir "work in a given directory" (set! root dir)]
- #:help-labels "operations to perform:"
- #:multi
- [("+l" "++line") "add a line"    (set! ops `(,@ops "add"))]
- [("-l" "--line") "delete a line" (set! ops `(,@ops "delete"))]
- [("-e" "--edit") "edit a line"   (set! ops `(,@ops "edit"))]
- #:args (file)
-
- (define program (cons 'begin (file->list file)))
-
- (eval program ns))
+(module+ main
+  (define repl? #false)
+  (command-line
+   #:once-any
+   [("--repl") "open a waffle REPL" (set! repl? #true)]
+   #:args file*
+   (parameterize ([current-namespace ns])
+     (for ([file (in-list file*)])
+       (define program (cons 'begin (file->list file)))
+       (eval program ns))
+     (when repl?
+       (read-eval-print-loop)))))
 
